@@ -1,0 +1,2798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cubeflow</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpolygon points='24,4 42,14 24,24 6,14' fill='%23f5f5f5'/%3E%3Cpolygon points='6,14 24,24 24,44 6,34' fill='%23f5f5f5'/%3E%3Cpolygon points='42,14 24,24 24,44 42,34' fill='%23f5f5f5'/%3E%3C/svg%3E">
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: #111418;
+  color: #e8ecf1;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+
+/* ---------- motion ---------- */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideIn { from { opacity: 0; transform: translate(40px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+section:not([hidden]) { animation: fadeUp 0.35s ease both; }
+.net.flash { animation: fadeIn 0.5s ease both; }
+.card.enter { animation: fadeUp 0.3s ease both; }
+.popup-overlay:not([hidden]) { animation: fadeIn 0.2s ease both; }
+.popup-overlay:not([hidden]) .popup { animation: popIn 0.22s ease both; }
+.event-menu:not([hidden]) { animation: popIn 0.18s ease both; transform-origin: top left; }
+
+/* ---------- sidebar ---------- */
+.sidebar {
+  width: clamp(180px, 14vw, 240px);
+  flex: 0 0 clamp(180px, 14vw, 240px);
+  border-right: 1px solid #1e242c;
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.navbtn {
+  background: none;
+  border: none;
+  color: #7d8b99;
+  padding: 10px 12px;
+  text-align: left;
+  border-radius: 8px;
+  font-size: clamp(15px, 1.1vw, 19px);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.navbtn:hover:not(:disabled) { color: #e8ecf1; transform: translateX(2px); }
+.navbtn.active { background: #1d232b; color: #e8ecf1; }
+.navbtn:disabled { opacity: 0.4; cursor: default; }
+.ic {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.2s ease;
+}
+
+/* ---------- main area ---------- */
+.main { flex: 1; position: relative; overflow: auto; }
+
+#timerView {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px;
+}
+.event-btn {
+  background: #1d232b;
+  color: #e8ecf1;
+  border: 1px solid #2a323c;
+  border-radius: 8px;
+  padding: clamp(7px, 0.6vw, 11px) clamp(12px, 1vw, 18px);
+  font-size: clamp(14px, 1.05vw, 18px);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.event-btn:hover:not(:disabled) { background: #252d37; border-color: #3a4450; }
+.event-btn:active:not(:disabled) { transform: scale(0.96); }
+.event-btn:disabled { opacity: 0.4; cursor: default; }
+.top-left { position: absolute; left: 16px; top: 16px; display: flex; gap: 8px; z-index: 40; }
+.event-menu .danger { color: #ff5d5d; }
+.event-menu button:disabled { opacity: 0.4; cursor: default; background: none; color: #9fb3c8; }
+.event-menu .sub { color: #55606d; font-size: 12px; margin-left: 8px; }
+.menu-sep { height: 1px; background: #242b35; margin: 6px 4px; }
+.popup-btns .ok { color: #5fd38d; font-weight: 600; }
+.name-popup { min-width: 280px; }
+.name-input {
+  width: 100%;
+  background: #1d232b;
+  border: 1px solid #2a323c;
+  color: #e8ecf1;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 15px;
+  font-family: inherit;
+  margin-bottom: 18px;
+  outline: none;
+  transition: border-color 0.15s ease;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.name-input:focus { border-color: #5fd38d; }
+.import-popup { min-width: 340px; }
+.import-popup .name-input { margin-bottom: 12px; text-align: left; }
+.field-label { display: block; text-align: left; font-size: 13px; color: #7d8b99; margin: 0 0 6px; }
+.import-error { color: #ff5d5d; font-size: 13px; min-height: 1.2em; margin: -4px 0 12px; text-align: left; }
+
+.event-menu {
+  position: fixed;
+  min-width: 190px;
+  background: #171c23;
+  border: 1px solid #2a323c;
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.event-menu button {
+  background: none;
+  border: none;
+  color: #9fb3c8;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.event-menu button:hover { background: #252d37; color: #e8ecf1; }
+.event-menu button.active { color: #5fd38d; }
+
+.scramble-top {
+  text-align: center;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: clamp(20px, 3.2vw, 32px);
+  line-height: 1.6;
+  color: #9fb3c8;
+  max-width: 1000px;
+  margin: 36px auto 0;
+  min-height: 3em;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.timer {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: clamp(80px, 22vw, 240px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #e8ecf1;
+  transition: color 0.15s ease;
+}
+.timer.notready { color: #ff5d5d; }
+.timer.ready { color: #5fd38d; }
+
+.actions { display: flex; gap: 10px; margin-top: 28px; flex-wrap: wrap; justify-content: center; }
+.actions.hidden { visibility: hidden; }
+.actions button, .details button, .popup-btns button {
+  background: #1d232b;
+  color: #e8ecf1;
+  border: 1px solid #2a323c;
+  border-radius: 8px;
+  padding: clamp(9px, 0.7vw, 13px) clamp(14px, 1.1vw, 20px);
+  font-size: clamp(14px, 1.05vw, 18px);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.actions button:hover:not(:disabled), .details button:hover:not(:disabled) {
+  background: #252d37;
+  border-color: #3a4450;
+}
+.actions button:active:not(:disabled), .details button:active:not(:disabled), .popup-btns button:active { transform: scale(0.95); }
+.actions button:disabled, .details button:disabled { opacity: 0.35; cursor: default; }
+.actions button.on, .details button.on { border-color: #f5b53c; color: #f5b53c; }
+.actions button.danger, .details button.danger { color: #ff5d5d; }
+
+.stats {
+  position: absolute;
+  left: 12px;
+  bottom: 20px;
+  background: #171c23;
+  border: 1px solid #242b35;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+  min-width: 200px;
+}
+.stats .row { display: flex; justify-content: space-between; gap: 18px; padding: 3px 0; color: #9fb3c8; }
+.stats .row span:last-child { color: #e8ecf1; font-variant-numeric: tabular-nums; }
+
+.net { position: fixed; right: 20px; bottom: 20px; width: clamp(240px, 19vw, 360px); }
+.net svg, .fullnet svg { width: 100%; height: auto; display: block; }
+
+/* ---------- solves list ---------- */
+#solvesView { padding: 30px; }
+.view-title {
+  margin: 0 0 20px;
+  font-weight: 600;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.seg {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  background: #171c23;
+  border: 1px solid #2a323c;
+  border-radius: 10px;
+  padding: 3px;
+}
+.seg button {
+  background: none;
+  border: none;
+  color: #7d8b99;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.seg button:hover { color: #e8ecf1; }
+.seg button.active { background: #2a323c; color: #e8ecf1; }
+#solvesList, .detail-list { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.empty { color: #55606d; font-size: 16px; }
+.card {
+  flex: 0 0 150px;
+  background: #171c23;
+  border: 1px solid #242b35;
+  border-radius: 12px;
+  padding: 14px 18px;
+  text-align: center;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card:not(.open):hover {
+  transform: translateY(-2px);
+  border-color: #34404d;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.card .idx {
+  font-size: 12px;
+  color: #55606d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.card .t {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.card.open { flex: 1 1 100%; text-align: left; padding: 20px 22px; }
+.card.open .t { font-size: 40px; margin: 6px 0 14px; }
+.meta { font-size: 14px; color: #9fb3c8; display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.meta .ic { width: 16px; height: 16px; flex-basis: 16px; }
+.sc {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  color: #9fb3c8;
+  line-height: 1.6;
+  margin: 14px 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.details .actions { margin-top: 0; justify-content: flex-start; }
+.fullnet { margin-top: 20px; max-width: 360px; }
+.copied { color: #5fd38d !important; }
+
+/* ---------- stats view ---------- */
+#statsView { padding: 30px; }
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.scard {
+  background: #171c23;
+  border: 1px solid #242b35;
+  border-radius: 12px;
+  padding: 16px 18px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.scard:hover { transform: translateY(-2px); border-color: #34404d; }
+.scard.focus { border-color: #5fd38d; }
+.scard-top { display: flex; justify-content: space-between; align-items: baseline; }
+.scard-label { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #7d8b99; }
+.scard-cur { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 28px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.scard-best {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  color: #9fb3c8;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.scard-best:hover { color: #5fd38d; }
+.detail-title { font-size: 14px; color: #9fb3c8; margin-bottom: 12px; }
+#statDetail { margin-bottom: 22px; }
+.chart-card { background: #171c23; border: 1px solid #242b35; border-radius: 12px; padding: 16px 18px; }
+.chart-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #9fb3c8; margin-bottom: 8px; }
+.legend { display: flex; gap: 14px; font-size: 13px; color: #7d8b99; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.legend i.line { border-radius: 2px; height: 3px; width: 14px; }
+.chart-card svg { display: block; width: 100%; height: 320px; }
+.axis { fill: #55606d; font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.grid { stroke: #222a33; stroke-width: 1; }
+
+/* ---------- pb panel, toast, popup ---------- */
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.pb-panel {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  width: 270px;
+  background: #171c23;
+  border: 1px solid #2a323c;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  cursor: pointer;
+  transform: translate(0, -50%);
+  animation: slideIn 0.4s ease both;
+}
+.pb-title { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #7d8b99; margin-bottom: 10px; }
+.pb-row { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; padding: 4px 0; }
+.pb-row .gain { color: #5fd38d; }
+.pb-row .muted { color: #55606d; }
+
+.copy-toast {
+  position: fixed;
+  transform: translateX(-50%);
+  background: #1d232b;
+  color: #5fd38d;
+  border: 1px solid #2a323c;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 300;
+}
+.copy-toast.pop { animation: toastIn 0.2s ease both; }
+
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.popup {
+  background: #171c23;
+  border: 1px solid #2a323c;
+  border-radius: 14px;
+  padding: 22px 28px;
+  min-width: 240px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+.popup-title { font-size: 18px; font-weight: 600; margin-bottom: 18px; }
+.popup-btns { display: flex; gap: 28px; justify-content: center; }
+.popup-btns button { background: none; border: none; font-size: 17px; padding: 6px 14px; }
+.popup-btns button:hover { background: #1d232b; }
+.popup-btns .yes { color: #ff5d5d; font-weight: 600; }
+.popup-btns .no { color: #7d8b99; }
+
+/* ---------- focus mode: hide everything but the timer while solving ---------- */
+.sidebar, .top-left, .scramble-top, .stats, .net, .actions { transition: opacity 0.3s ease; }
+body.focus-mode .sidebar,
+body.focus-mode .top-left,
+body.focus-mode .scramble-top,
+body.focus-mode .stats,
+body.focus-mode .net,
+body.focus-mode .actions {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- profile and accounts ---------- */
+.profile-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  color: #e8ecf1;
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+.profile-btn:hover:not(:disabled) { background: #1d232b; }
+.profile-btn:disabled { opacity: 0.4; cursor: default; }
+.avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  background: #1d232b;
+  border: 1px solid #2a323c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #9fb3c8;
+  background-size: cover;
+  background-position: center;
+}
+.profile-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-sep { height: 1px; background: #1e242c; margin: 6px 0 10px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.tabs button {
+  flex: 1;
+  background: none;
+  border: 1px solid #2a323c;
+  color: #7d8b99;
+  border-radius: 8px;
+  padding: 7px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tabs button.active { background: #1d232b; color: #e8ecf1; }
+.auth-popup, .edit-popup { min-width: 300px; text-align: left; }
+.auth-popup .popup-title, .edit-popup .popup-title { text-align: center; }
+.auth-popup .name-input, .edit-popup .name-input { margin-bottom: 12px; text-align: left; }
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #7d8b99;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 0 0 12px;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+}
+.link-btn:hover { color: #5fd38d; }
+.forgot-text { color: #9fb3c8; font-size: 14px; line-height: 1.5; margin: 0 auto 18px; max-width: 300px; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 14px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #e8ecf1;
+}
+.logo { width: 30px; height: 30px; flex: 0 0 30px; }
+
+.note-row { display: flex; align-items: center; gap: 10px; margin: -6px 0 14px; font-size: 14px; color: #e8ecf1; }
+.note-text { flex: 1; white-space: pre-wrap; }
+.muted-note { color: #55606d; }
+.pencil {
+  background: none;
+  border: none;
+  color: #7d8b99;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.pencil:hover { color: #5fd38d; background: #1d232b; }
+.pencil .ic { width: 16px; height: 16px; flex-basis: 16px; }
+.note-input { min-height: 110px; resize: vertical; }
+
+.note-btn { display: inline-flex; align-items: center; gap: 6px; }
+.note-btn .ic { width: 16px; height: 16px; flex-basis: 16px; }
+
+.learn-h { font-size: 20px; font-weight: 600; margin: 8px 0 12px; }
+.learn-text { color: #9fb3c8; line-height: 1.6; max-width: 720px; font-size: 15px; margin-bottom: 18px; }
+.learn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; max-width: 900px; }
+.learn-card {
+  background: #171c23;
+  border: 1px solid #242b35;
+  border-radius: 12px;
+  padding: 16px 18px;
+  color: #e8ecf1;
+  font-family: inherit;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.learn-card:hover:not(:disabled) { transform: translateY(-2px); border-color: #34404d; }
+.learn-card:disabled { opacity: 0.45; cursor: default; }
+.learn-status { font-size: 13px; color: #7d8b99; margin-top: 4px; }
+.learn-back {
+  background: #1d232b;
+  color: #e8ecf1;
+  border: 1px solid #2a323c;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+.alg {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: clamp(16px, 1.6vw, 22px);
+  background: #171c23;
+  border: 1px solid #242b35;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 16px 0 10px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.casepic { width: 220px; margin: 12px 0 18px; }
+.casepic svg { width: 100%; height: auto; display: block; }
+
+body.focus-mode .net { opacity: 0 !important; }
+
+/* ---------- phones: navigation moves to a bottom bar, panels stack ---------- */
+@media (max-width: 700px) {
+  body { flex-direction: column; }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-right: none;
+    border-top: 1px solid #1e242c;
+    background: #111418;
+    z-index: 60;
+  }
+  .brand, .profile-sep { display: none; }
+  .profile-btn { width: auto; flex-direction: column; gap: 2px; padding: 6px 8px; font-size: 11px; }
+  .profile-name { display: none; }
+  .profile-btn .avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 12px; }
+  .navbtn { flex-direction: column; gap: 2px; padding: 6px 8px; font-size: 11px; }
+  .navbtn span { font-size: 11px; }
+  .ic { width: 20px; height: 20px; flex-basis: 20px; }
+  .main { flex: 1 1 auto; min-height: 0; width: 100%; padding-bottom: 80px; }
+  #timerView { height: auto; min-height: 100%; padding: 12px 12px 0; }
+  .top-left { position: relative; left: auto; top: auto; justify-content: center; margin-bottom: 4px; }
+  .scramble-top { margin-top: 8px; font-size: clamp(14px, 4.2vw, 20px); min-height: 0; }
+  .center { flex: 0 0 auto; padding: 24px 0 8px; touch-action: none; }
+  .timer { font-size: clamp(72px, 26vw, 130px); }
+  .actions { margin-top: 18px; gap: 8px; }
+  .actions button, .details button { padding: 8px 12px; font-size: 14px; }
+  .stats { position: static; min-width: 0; width: 100%; max-width: 320px; margin: 16px auto 0; padding: 10px 14px; font-size: 13px; }
+  .net { position: static; width: min(88vw, 300px); margin: 14px auto 24px; }
+  .pb-panel { left: 12px; right: 12px; top: auto; bottom: 88px; width: auto; transform: none; animation: fadeUp 0.3s ease both; }
+  #solvesView, #statsView, #learnView { padding: 16px 14px 96px; }
+  .view-title { flex-wrap: wrap; font-size: 18px; }
+  .seg { margin-left: 0; flex-wrap: wrap; }
+  .card { flex: 0 0 calc(50% - 6px); }
+  .card.open { flex: 1 1 100%; }
+  .stat-cards { grid-template-columns: repeat(2, 1fr); }
+  .import-popup, .auth-popup, .edit-popup, .name-popup { min-width: min(340px, 88vw); }
+  .popup { max-width: 92vw; }
+  /* while inspecting or solving on a phone, centre the timer on the whole screen */
+  body.focus-mode .top-left,
+  body.focus-mode .scramble-top,
+  body.focus-mode .stats,
+  body.focus-mode .net,
+  body.focus-mode .actions { display: none !important; }
+  body.focus-mode #timerView .center {
+    position: fixed;
+    inset: 0;
+    padding: 0;
+    justify-content: center;
+    z-index: 70;
+    background: #111418;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cubeflow">
+<link rel="apple-touch-icon" href="icon.svg">
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="24,4 42,14 24,24 6,14" fill="#f5f5f5" stroke="#111418" stroke-width="1.5" stroke-linejoin="round"/>
+        <polygon points="6,14 24,24 24,44 6,34" fill="#f5f5f5" stroke="#111418" stroke-width="1.5" stroke-linejoin="round"/>
+        <polygon points="42,14 24,24 24,44 42,34" fill="#f5f5f5" stroke="#111418" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+      <span>Cubeflow</span>
+    </div>
+    <button class="profile-btn" data-action="profile" id="profileBtn"></button>
+    <div class="profile-sep"></div>
+    <button class="navbtn active" data-action="view" data-view="timer" id="navTimer">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg>
+      <span>Timer</span>
+    </button>
+    <button class="navbtn" data-action="view" data-view="solves" id="navSolves">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4z"/><path d="M3.5 7.4l8.5 4.9 8.5-4.9"/><path d="M12 12.3v9.2"/></svg>
+      <span id="solvesLabel">Solves</span>
+    </button>
+    <button class="navbtn" data-action="view" data-view="stats" id="navStats">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+      <span>Stats</span>
+    </button>
+    <button class="navbtn" data-action="view" data-view="learn" id="navLearn">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 5v16"/></svg>
+      <span>Learn</span>
+    </button>
+  </nav>
+
+  <main class="main">
+    <section id="timerView">
+      <div class="top-left">
+        <button class="event-btn" data-action="toggleEvents" id="eventBtn"></button>
+        <button class="event-btn" data-action="toggleSessions" id="sessionBtn"></button>
+      </div>
+      <div class="scramble-top" id="scramble"></div>
+      <div class="center">
+        <div class="timer" id="timer">0.00</div>
+        <div class="actions" id="timerActions">
+          <button data-action="pen2" id="tPen2">+2</button>
+          <button data-action="penDNF" id="tPenDNF">DNF</button>
+          <button data-action="del" class="danger" id="tDel">Delete solve</button>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="net" id="net"></div>
+    </section>
+
+    <section id="solvesView" hidden>
+      <h2 class="view-title">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4z"/><path d="M3.5 7.4l8.5 4.9 8.5-4.9"/><path d="M12 12.3v9.2"/></svg>
+        Solves
+        <button class="event-btn" data-action="openImport" id="importBtn">+ Import</button>
+        <div class="seg" id="sortSeg">
+          <button data-action="sort" data-sort="fastest">Fastest</button>
+          <button data-action="sort" data-sort="slowest">Slowest</button>
+          <button data-action="sort" data-sort="newest">Newest</button>
+          <button data-action="sort" data-sort="oldest">Oldest</button>
+        </div>
+      </h2>
+      <div id="solvesList"></div>
+    </section>
+
+    <section id="statsView" hidden>
+      <h2 class="view-title">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+        Stats
+      </h2>
+      <div class="stat-cards" id="statCards"></div>
+      <div id="statDetail"></div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <span>Solve times</span>
+          <span class="legend">
+            <span><i style="background:#9fb3c8"></i>Solve</span>
+            <span><i class="line" style="background:#5fd38d"></i>Ao5</span>
+            <span><i style="background:#ff5d5d"></i>DNF</span>
+          </span>
+        </div>
+        <div id="chart"></div>
+      </div>
+    </section>
+    <section id="learnView" hidden>
+      <div id="learnBody"></div>
+    </section>
+  </main>
+
+  <div class="event-menu" id="eventMenu" hidden></div>
+  <div class="event-menu" id="sessionMenu" hidden></div>
+  <div class="popup-overlay" id="sessionPopup" hidden>
+    <div class="popup">
+      <div class="popup-title">Remove Session?</div>
+      <div class="popup-btns">
+        <button class="yes" data-action="confirmRemoveSession">Yes</button>
+        <button class="no" data-action="cancelRemoveSession">No</button>
+      </div>
+    </div>
+  </div>
+  <div class="popup-overlay" id="nameModal" hidden>
+    <div class="popup name-popup">
+      <div class="popup-title" id="nameTitle">New session</div>
+      <input class="name-input" id="nameInput" maxlength="24" placeholder="Session name" autocomplete="off">
+      <div class="popup-btns">
+        <button class="ok" data-action="saveName">Save</button>
+        <button class="no" data-action="cancelName">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div class="popup-overlay" id="importModal" hidden>
+    <div class="popup import-popup">
+      <div class="popup-title">Import solve</div>
+      <label class="field-label" for="importScramble">Scramble</label>
+      <input class="name-input" id="importScramble" placeholder="e.g. R U2 F' R" autocomplete="off">
+      <label class="field-label" for="importTime">Time</label>
+      <input class="name-input" id="importTime" placeholder="e.g. 12.34, 1:02.34, DNF or 12.34+" autocomplete="off">
+      <div class="import-error" id="importError"></div>
+      <div class="popup-btns">
+        <button class="ok" data-action="saveImport">Import</button>
+        <button class="no" data-action="cancelImport">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div class="event-menu" id="accountMenu" hidden></div>
+  <div class="popup-overlay" id="authModal" hidden>
+    <div class="popup auth-popup">
+      <div class="popup-title" id="authTitle">Log in</div>
+      <div class="tabs">
+        <button data-action="authTab" data-mode="login" id="tabLogin">Log in</button>
+        <button data-action="authTab" data-mode="signup" id="tabSignup">Sign up</button>
+      </div>
+      <label class="field-label" for="authName">Name</label>
+      <input class="name-input" id="authName" maxlength="20" autocomplete="off">
+      <label class="field-label" for="authPass">Password</label>
+      <input class="name-input" id="authPass" type="password" autocomplete="new-password">
+      <button class="link-btn" data-action="forgotPassword" id="forgotBtn">Forgot password?</button>
+      <div id="authConfirmWrap" hidden>
+        <label class="field-label" for="authPass2">Confirm password</label>
+        <input class="name-input" id="authPass2" type="password" autocomplete="new-password">
+      </div>
+      <div class="import-error" id="authError"></div>
+      <div class="popup-btns">
+        <button class="ok" data-action="authSubmit" id="authSubmitBtn">Log in</button>
+        <button class="no" data-action="cancelAuth">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div class="popup-overlay" id="editModal" hidden>
+    <div class="popup edit-popup">
+      <div class="popup-title" id="editTitle"></div>
+      <div id="editFields"></div>
+      <div class="import-error" id="editError"></div>
+      <div class="popup-btns">
+        <button class="ok" data-action="editSave">Save</button>
+        <button class="no" data-action="cancelEdit">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div class="popup-overlay" id="forgotPopup" hidden>
+    <div class="popup">
+      <div class="popup-title">Delete account?</div>
+      <div class="forgot-text" id="forgotText"></div>
+      <div class="popup-btns">
+        <button class="yes" data-action="confirmForgot">Delete</button>
+        <button class="no" data-action="cancelForgot">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div class="popup-overlay" id="noteModal" hidden>
+    <div class="popup edit-popup">
+      <div class="popup-title">Solve note</div>
+      <textarea class="name-input note-input" id="noteInput" maxlength="200"></textarea>
+      <div class="popup-btns">
+        <button class="ok" data-action="saveNote">Save</button>
+        <button class="no" data-action="cancelNote">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="pfpInput" accept="image/*" hidden>
+  <div class="copy-toast" id="copyToast" hidden>Copied</div>
+  <div class="pb-panel" id="pbPanel" hidden></div>
+  <div class="popup-overlay" id="popup" hidden>
+    <div class="popup">
+      <div class="popup-title">Delete Solve?</div>
+      <div class="popup-btns">
+        <button class="yes" data-action="confirmDel">Yes</button>
+        <button class="no" data-action="cancelDel">No</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ---------- constants ----------
+const OPP = { R: 'L', L: 'R', U: 'D', D: 'U', F: 'B', B: 'F' };
+const FACE_DEF = { R: [0, 1], L: [0, -1], U: [1, 1], D: [1, -1], F: [2, 1], B: [2, -1] };
+const COLORS = {
+  'x+': '#d7261e', 'x-': '#f5892b', 'y+': '#f5f5f5',
+  'y-': '#f4d03f', 'z+': '#1f9d55', 'z-': '#2b6fd6'
+};
+const PYRA_COLORS = ['#f4d03f', '#1f9d55', '#d7261e', '#2b6fd6'];
+const PYRA_IDX = { U: 0, L: 1, R: 2, B: 3 };
+const HOLD_READY_MS = 300;
+const INSPECTION_S = 15;
+const CLOCK_ICON = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg>';
+const CUBE_ICON = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4z"/><path d="M3.5 7.4l8.5 4.9 8.5-4.9"/><path d="M12 12.3v9.2"/></svg>';
+
+// events (scramble lengths and faces are approximations of the official scramblers)
+const EVENTS = {
+  '2x2': { name: '2x2', type: 'cube', n: 2, len: 9, faces: 'RUF' },
+  '3x3': { name: '3x3', type: 'cube', n: 3, len: 20, faces: 'RLUDFB' },
+  '4x4': { name: '4x4', type: 'cube', n: 4, len: 40, faces: 'RLUDFB' },
+  '5x5': { name: '5x5', type: 'cube', n: 5, len: 60, faces: 'RLUDFB' },
+  '6x6': { name: '6x6', type: 'cube', n: 6, len: 80, faces: 'RLUDFB' },
+  '7x7': { name: '7x7', type: 'cube', n: 7, len: 100, faces: 'RLUDFB' },
+  'pyra': { name: 'Pyraminx', type: 'pyra', len: 11, faces: 'ULRB' }
+};
+
+const STAT_DEFS = [
+  { key: 'Best', n: 1, trim: 0 },
+  { key: 'Mo3', n: 3, trim: 0 },
+  { key: 'Ao5', n: 5, trim: 1 },
+  { key: 'Ao12', n: 12, trim: 1 },
+  { key: 'Ao100', n: 100, trim: 5 }
+];
+
+// ---------- cube model (any NxN) ----------
+// coordinates are scaled so each layer is 2 apart: outer layers sit at +/-(N-1)
+function keyOf(n) {
+  const i = n.findIndex(v => v !== 0);
+  return 'xyz'[i] + (n[i] > 0 ? '+' : '-');
+}
+
+function solvedCube(N) {
+  const vals = [];
+  for (let k = 0; k < N; k++) vals.push(2 * k - (N - 1));
+  const cubies = [];
+  for (const x of vals) {
+    for (const y of vals) {
+      for (const z of vals) {
+        const pos = [x, y, z];
+        const stickers = [];
+        for (let a = 0; a < 3; a++) {
+          if (pos[a] !== 0) {
+            const n = [0, 0, 0];
+            n[a] = Math.sign(pos[a]);
+            stickers.push({ n, c: keyOf(n) });
+          }
+        }
+        cubies.push({ pos, stickers });
+      }
+    }
+  }
+  return cubies;
+}
+
+function rotQ(v, a, q) {
+  const r = v.slice();
+  const turns = ((q % 4) + 4) % 4;
+  for (let t = 0; t < turns; t++) {
+    const b = (a + 1) % 3, c = (a + 2) % 3;
+    const ob = r[b], oc = r[c];
+    r[b] = -oc;
+    r[c] = ob;
+  }
+  return r;
+}
+
+// move forms: R, R', R2 (outer layer), Rw, Rw', Rw2 (outer two layers)
+function applyCubeMove(cube, move, N) {
+  if (move[0] === 'f') {
+    // wide front: F plus the middle slice opposite S
+    const m = move.slice(1);
+    const t = m === "'" ? 3 : m === '2' ? 2 : 1;
+    for (const cub of cube) {
+      if (cub.pos[2] >= 0) {
+        cub.pos = rotQ(cub.pos, 2, -t);
+        for (const st of cub.stickers) st.n = rotQ(st.n, 2, -t);
+      }
+    }
+    return;
+  }
+  if (move[0] === 'r') {
+    // wide right: R plus the middle slice opposite M
+    const m = move.slice(1);
+    const t = m === "'" ? 3 : m === '2' ? 2 : 1;
+    for (const cub of cube) {
+      if (cub.pos[0] >= 0) {
+        cub.pos = rotQ(cub.pos, 0, -t);
+        for (const st of cub.stickers) st.n = rotQ(st.n, 0, -t);
+      }
+    }
+    return;
+  }
+  if ('xyzM'.includes(move[0])) {
+    // whole-cube rotations (x, y, z) and the middle slice (M), used by some PLL algorithms
+    const m = move.slice(1);
+    const t = m === "'" ? 3 : m === '2' ? 2 : 1;
+    if (move[0] === 'M') {
+      for (const cub of cube) {
+        if (cub.pos[0] === 0) {
+          cub.pos = rotQ(cub.pos, 0, t);
+          for (const st of cub.stickers) st.n = rotQ(st.n, 0, t);
+        }
+      }
+    } else {
+      const a = 'xyz'.indexOf(move[0]);
+      for (const cub of cube) {
+        cub.pos = rotQ(cub.pos, a, -t);
+        for (const st of cub.stickers) st.n = rotQ(st.n, a, -t);
+      }
+    }
+    return;
+  }
+  const face = move[0];
+  const wide = move[1] === 'w';
+  const rest = wide ? move.slice(2) : move.slice(1);
+  const [a, s] = FACE_DEF[face];
+  const depth = wide ? 2 : 1;
+  const q0 = rest === '' ? 1 : rest === "'" ? 3 : 2;
+  const q = -s * q0;
+  const limit = (N - 1) - 2 * (depth - 1);
+  for (const cub of cube) {
+    if (cub.pos[a] * s >= limit) {
+      cub.pos = rotQ(cub.pos, a, q);
+      for (const st of cub.stickers) st.n = rotQ(st.n, a, q);
+    }
+  }
+}
+
+function genCubeMoves(len, faces, N) {
+  const out = [];
+  let last = null, prev = null;
+  while (out.length < len) {
+    const f = faces[Math.floor(Math.random() * faces.length)];
+    if (f === last) continue;
+    if (f === prev && OPP[last] === f) continue;
+    const wide = N >= 4 && Math.random() < 0.25;
+    const mod = ['', "'", '2'][Math.floor(Math.random() * 3)];
+    out.push(f + (wide ? 'w' : '') + mod);
+    prev = last;
+    last = f;
+  }
+  return out;
+}
+
+function cubeNetSVG(cube, N) {
+  const M = N - 1;
+  const BLOCKS = { 'y+': [1, 0], 'x-': [0, 1], 'z+': [1, 1], 'x+': [2, 1], 'z-': [3, 1], 'y-': [1, 2] };
+  let rects = '';
+  for (const cub of cube) {
+    const [x, y, z] = cub.pos;
+    const ix = (x + M) / 2, iy = (y + M) / 2, iz = (z + M) / 2;
+    for (const st of cub.stickers) {
+      const i = st.n.findIndex(v => v !== 0);
+      if (cub.pos[i] !== st.n[i] * M) continue; // only surface stickers are drawn
+      const fk = keyOf(st.n);
+      let col, row;
+      switch (fk) {
+        case 'y+': col = ix; row = iz; break;
+        case 'y-': col = ix; row = M - iz; break;
+        case 'z+': col = ix; row = M - iy; break;
+        case 'x+': col = M - iz; row = M - iy; break;
+        case 'z-': col = M - ix; row = M - iy; break;
+        case 'x-': col = iz; row = M - iy; break;
+      }
+      const [bx, by] = BLOCKS[fk];
+      rects += `<rect x="${bx * (N + 0.25) + col + 0.07}" y="${by * (N + 0.25) + row + 0.07}" width="0.86" height="0.86" rx="0.18" fill="${COLORS[st.c]}"/>`;
+    }
+  }
+  return `<svg viewBox="0 0 ${4 * N + 0.75} ${3 * N + 0.5}" xmlns="http://www.w3.org/2000/svg">${rects}</svg>`;
+}
+
+// ---------- pyraminx model ----------
+// each sticker is a small triangle, stored as its three vertices in barycentric units (each vertex sums to 3)
+function pyraOthers(f) {
+  return [0, 1, 2, 3].filter(k => k !== f);
+}
+
+function pyraSolved() {
+  const stickers = [];
+  for (let f = 0; f < 4; f++) {
+    const [a, b, c] = pyraOthers(f);
+    const mk = (ca, cb, cc) => {
+      const v = [0, 0, 0, 0];
+      v[a] = ca; v[b] = cb; v[c] = cc;
+      return v;
+    };
+    for (let x = 0; x <= 2; x++) {
+      for (let y = 0; y <= 2 - x; y++) {
+        const z = 2 - x - y;
+        stickers.push({ v: [mk(x + 1, y, z), mk(x, y + 1, z), mk(x, y, z + 1)], c: f });
+      }
+    }
+    for (let x = 0; x <= 1; x++) {
+      for (let y = 0; y <= 1 - x; y++) {
+        const z = 1 - x - y;
+        stickers.push({ v: [mk(x + 1, y + 1, z), mk(x + 1, y, z + 1), mk(x, y + 1, z + 1)], c: f });
+      }
+    }
+  }
+  return stickers;
+}
+
+function pyraRotVertex(v, i, times) {
+  let r = v.slice();
+  const [p, q, s] = pyraOthers(i);
+  for (let t = 0; t < times; t++) {
+    const n = r.slice();
+    n[p] = r[q];
+    n[q] = r[s];
+    n[s] = r[p];
+    r = n;
+  }
+  return r;
+}
+
+// letters U, L, R, B turn a corner layer; lowercase turns just the tip
+function applyPyraMove(stickers, move) {
+  const letter = move[0];
+  const tip = letter === letter.toLowerCase();
+  const i = PYRA_IDX[letter.toUpperCase()];
+  const rest = move.slice(1);
+  const times = rest === '' ? 1 : rest === "'" ? 3 : 2;
+  const threshold = tip ? 6 : 4;
+  for (const st of stickers) {
+    const sum = st.v.reduce((acc, vert) => acc + vert[i], 0);
+    if (sum >= threshold) st.v = st.v.map(vert => pyraRotVertex(vert, i, times));
+  }
+}
+
+function genPyraMoves(len) {
+  const out = [];
+  let last = null;
+  while (out.length < len) {
+    const letter = 'ULRB'[Math.floor(Math.random() * 4)];
+    if (letter === last) continue;
+    const tip = Math.random() < 0.3;
+    const mod = ['', "'", '2'][Math.floor(Math.random() * 3)];
+    out.push((tip ? letter.toLowerCase() : letter) + mod);
+    last = letter;
+  }
+  return out;
+}
+
+function pyraNetSVG(stickers) {
+  const SIDE = 100, H = 86.6, GAP = 20;
+  let polys = '';
+  for (const st of stickers) {
+    const f = [0, 1, 2, 3].find(k => st.v.every(vert => vert[k] === 0));
+    const [a, b, c] = pyraOthers(f);
+    const ox = f * (SIDE + GAP);
+    const corner = [[ox, 90], [ox + SIDE, 90], [ox + SIDE / 2, 90 - H]]; // corners for coords a, b, c
+    const pts = st.v.map(vert => {
+      const x = (vert[a] * corner[0][0] + vert[b] * corner[1][0] + vert[c] * corner[2][0]) / 3;
+      const y = (vert[a] * corner[0][1] + vert[b] * corner[1][1] + vert[c] * corner[2][1]) / 3;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(' ');
+    polys += `<polygon points="${pts}" fill="${PYRA_COLORS[st.c]}" stroke="#111418" stroke-width="2.5" stroke-linejoin="round"/>`;
+  }
+  const width = 4 * SIDE + 3 * GAP;
+  return `<svg viewBox="-6 -6 ${width + 12} 102" xmlns="http://www.w3.org/2000/svg">${polys}</svg>`;
+}
+
+// ---------- pyraminx net (one big unfolded triangle layout) ----------
+// corners of each face in the net, keyed by vertex index (side length 1)
+const PYRA_NET = {
+  0: { 1: [0, 0.8660254], 2: [-0.5, 0], 3: [0.5, 0] },
+  1: { 0: [0, -0.8660254], 2: [-0.5, 0], 3: [0.5, 0] },
+  2: { 1: [0, 0.8660254], 3: [0.5, 0], 0: [1, 0.8660254] },
+  3: { 1: [0, 0.8660254], 2: [-0.5, 0], 0: [-1, 0.8660254] }
+};
+
+function pyraNetSVG2(stickers) {
+  const H = 0.8660254, S = 100, OX = 110, OY = 10;
+  const tx = x => (OX + x * S).toFixed(2);
+  const ty = y => (OY + (H - y) * S).toFixed(2);
+  let polys = '';
+  for (const st of stickers) {
+    const f = [0, 1, 2, 3].find(k => st.v.every(vert => vert[k] === 0));
+    const corners = PYRA_NET[f];
+    const pts = st.v.map(vert => {
+      let x = 0, y = 0;
+      for (const k of [0, 1, 2, 3]) {
+        if (k === f) continue;
+        const w = vert[k] / 3;
+        x += w * corners[k][0];
+        y += w * corners[k][1];
+      }
+      // shrink each face slightly around its own centre so the faces show a gap
+      const ks = Object.values(corners);
+      const ccx = ks.reduce((a, p) => a + p[0], 0) / 3;
+      const ccy = ks.reduce((a, p) => a + p[1], 0) / 3;
+      return `${tx(ccx + (x - ccx) * 0.92)},${ty(ccy + (y - ccy) * 0.92)}`;
+    }).join(' ');
+    polys += `<polygon points="${pts}" fill="${PYRA_COLORS[st.c]}" stroke="#111418" stroke-width="3" stroke-linejoin="round"/>`;
+  }
+  return `<svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">${polys}</svg>`;
+}
+
+// ---------- puzzle helpers (depend on the event) ----------
+function puzzleFromScramble(scramble, ev) {
+  const moves = scramble.split(' ');
+  if (ev.type === 'pyra') {
+    const st = pyraSolved();
+    moves.forEach(m => applyPyraMove(st, m));
+    return st;
+  }
+  const cube = solvedCube(ev.n);
+  moves.forEach(m => applyCubeMove(cube, m, ev.n));
+  return cube;
+}
+
+function netFor(scramble, ev) {
+  const state = puzzleFromScramble(scramble, ev);
+  return ev.type === 'pyra' ? pyraNetSVG2(state) : cubeNetSVG(state, ev.n);
+}
+
+function genScramble(ev) {
+  return ev.type === 'pyra' ? genPyraMoves(ev.len).join(' ') : genCubeMoves(ev.len, ev.faces, ev.n).join(' ');
+}
+
+// ---------- formatting and averages ----------
+function fmt(ms) {
+  const cs = Math.floor(ms / 10);
+  const m = Math.floor(cs / 6000);
+  const s = Math.floor(cs / 100) % 60;
+  const c = cs % 100;
+  const sec = m ? String(s).padStart(2, '0') : String(s);
+  return (m ? m + ':' : '') + sec + '.' + String(c).padStart(2, '0');
+}
+
+function effTime(s) {
+  if (s.pen === 'DNF') return Infinity;
+  return s.ms + (s.pen === 2 ? 2000 : 0);
+}
+
+function solveText(s) {
+  if (s.pen === 'DNF') return 'DNF';
+  const t = fmt(effTime(s));
+  return s.pen === 2 ? t + '+' : t;
+}
+
+function trimmedAvg(vals, trim) {
+  const arr = [...vals].sort((a, b) => a - b);
+  const kept = arr.slice(trim, arr.length - trim);
+  const sum = kept.reduce((a, b) => a + b, 0);
+  return sum / kept.length;
+}
+
+function windowValues(n, trim) {
+  const times = solves.map(effTime);
+  const out = [];
+  for (let i = n - 1; i < times.length; i++) out.push(trimmedAvg(times.slice(i - n + 1, i + 1), trim));
+  return out;
+}
+
+function currentValue(n, trim) {
+  if (solves.length < n) return null;
+  const w = windowValues(n, trim);
+  return w[w.length - 1];
+}
+
+function bestValue(n, trim) {
+  const w = windowValues(n, trim).filter(isFinite);
+  return w.length ? Math.min(...w) : null;
+}
+
+// the fastest window of n solves (by trimmed average), with its start and end index
+function bestWindow(n, trim) {
+  let best = null;
+  for (let i = n - 1; i < solves.length; i++) {
+    const v = trimmedAvg(solves.slice(i - n + 1, i + 1).map(effTime), trim);
+    if (isFinite(v) && (best === null || v < best.value)) best = { value: v, start: i - n + 1, end: i };
+  }
+  return best;
+}
+
+// index of the fastest single solve, or -1
+function bestSingleIndex() {
+  let idx = -1, bestMs = Infinity;
+  solves.forEach((s, i) => {
+    const t = effTime(s);
+    if (isFinite(t) && t < bestMs) { bestMs = t; idx = i; }
+  });
+  return idx;
+}
+
+function displayValue(v) {
+  if (v === null) return '-';
+  return isFinite(v) ? fmt(v) : 'DNF';
+}
+
+function bestStat() {
+  const idx = bestSingleIndex();
+  return idx < 0 ? (solves.length ? 'DNF' : '-') : fmt(effTime(solves[idx]));
+}
+
+function avgStat(n, trim) {
+  return displayValue(currentValue(n, trim));
+}
+
+// ---------- app state ----------
+const scrambleEl = document.getElementById('scramble');
+const timerEl = document.getElementById('timer');
+const netEl = document.getElementById('net');
+const timerView = document.getElementById('timerView');
+const solvesView = document.getElementById('solvesView');
+const statsView = document.getElementById('statsView');
+const timerActions = document.getElementById('timerActions');
+const navTimer = document.getElementById('navTimer');
+const navSolves = document.getElementById('navSolves');
+const navStats = document.getElementById('navStats');
+const solvesLabel = document.getElementById('solvesLabel');
+const popup = document.getElementById('popup');
+const eventMenu = document.getElementById('eventMenu');
+const pbPanel = document.getElementById('pbPanel');
+const eventBtn = document.getElementById('eventBtn');
+
+let view = 'timer';
+let state = 'menu';          // 'menu' | 'inspect' | 'solve'
+let inspStart = 0;
+let holdStart = 0;
+let spaceDown = false;
+let sawFirstRelease = false;
+let solveStart = 0;
+let penalty = 0;             // 0, 2, or 'DNF'
+let raf = null;
+let currentEvent = '3x3';
+let solvesByEvent = {};      // event key -> array of solves
+let solves = [];             // the active event's solves
+let scrambles = {};          // event key -> current scramble
+let currentScramble = '';
+let idCounter = 0;
+let openId = null;
+let sortMode = 'newest';
+let pendingDelete = null;
+let animatedOpenId = null;
+let statFocus = null;        // stat key shown in the stats detail, or null
+let statOpenId = null;       // open solve inside a stat's detail list
+let pbTimer = null;
+let toastTimer = null;
+
+// ---------- saving ----------
+const STORE_KEY = 'cubeTimer.v3';
+const PREV_KEYS = ['cubeTimer.v2', 'cubeTimer.v1'];
+
+function save() {
+  syncActive();
+  solvesByEvent[currentEvent] = solves;
+  try {
+    localStorage.setItem(storeKey(), JSON.stringify({ sessions, currentSession, currentEvent, idCounter, sortMode }));
+  } catch (err) { /* storage unavailable */ }
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      solvesByEvent = d.solvesByEvent || {};
+      currentEvent = EVENTS[d.currentEvent] ? d.currentEvent : '3x3';
+      scrambles = d.scrambles || {};
+      idCounter = typeof d.idCounter === 'number' ? d.idCounter : 0;
+      sortMode = d.sortMode || 'newest';
+      return;
+    }
+    // migrate older saves (v2 had events, v1 had only 3x3)
+    const v2 = localStorage.getItem(PREV_KEYS[0]);
+    if (v2) {
+      const d = JSON.parse(v2);
+      solvesByEvent = d.solvesByEvent || {};
+      currentEvent = EVENTS[d.currentEvent] ? d.currentEvent : '3x3';
+      scrambles = d.scrambles || {};
+      idCounter = typeof d.idCounter === 'number' ? d.idCounter : 0;
+      sortMode = d.sortMode || 'newest';
+      return;
+    }
+    const v1 = localStorage.getItem(PREV_KEYS[1]);
+    if (v1) {
+      const d = JSON.parse(v1);
+      if (Array.isArray(d.solves)) solvesByEvent = { '3x3': d.solves };
+      if (typeof d.idCounter === 'number') idCounter = d.idCounter;
+      if (d.sortMode) sortMode = d.sortMode;
+      if (d.currentScramble) scrambles = { '3x3': d.currentScramble };
+    }
+  } catch (err) { /* ignore bad data */ }
+}
+
+// ---------- sessions ----------
+const SESSION_KEY = 'cubeTimer.v4';
+const SESSION_PREV = ['cubeTimer.v3', 'cubeTimer.v2'];
+const sessionBtn = document.getElementById('sessionBtn');
+const sessionMenu = document.getElementById('sessionMenu');
+const sessionPopup = document.getElementById('sessionPopup');
+const nameModal = document.getElementById('nameModal');
+const nameInput = document.getElementById('nameInput');
+const nameTitle = document.getElementById('nameTitle');
+let sessions = [];
+let currentSession = 1;
+let nameMode = 'add';
+
+function esc(text) {
+  return String(text).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+}
+
+function makeSession(id, name, map, scr) {
+  return { id, name, solvesByEvent: map || {}, scrambles: scr || {} };
+}
+
+function ensureArrays(map) {
+  for (const k of Object.keys(EVENTS)) {
+    if (!Array.isArray(map[k])) map[k] = [];
+  }
+  return map;
+}
+
+function activeSession() {
+  return sessions.find(s => s.id === currentSession);
+}
+
+function syncActive() {
+  const s = activeSession();
+  if (s) {
+    s.solvesByEvent = solvesByEvent;
+    s.scrambles = scrambles;
+  }
+}
+
+function activateSession(id) {
+  const s = sessions.find(x => x.id === id) || sessions[0];
+  currentSession = s.id;
+  solvesByEvent = ensureArrays(s.solvesByEvent);
+  scrambles = s.scrambles;
+  solves = solvesByEvent[currentEvent];
+}
+
+function loadSessions() {
+  try {
+    const raw = localStorage.getItem(storeKey());
+    if (raw) {
+      const d = JSON.parse(raw);
+      sessions = d.sessions;
+      currentSession = d.currentSession;
+      currentEvent = EVENTS[d.currentEvent] ? d.currentEvent : '3x3';
+      idCounter = typeof d.idCounter === 'number' ? d.idCounter : 0;
+      sortMode = d.sortMode || 'newest';
+    } else if (!currentAccount) {
+      let d = null;
+      for (const k of SESSION_PREV) {
+        const r = localStorage.getItem(k);
+        if (r) { d = JSON.parse(r); break; }
+      }
+      if (d) {
+        currentEvent = EVENTS[d.currentEvent] ? d.currentEvent : '3x3';
+        idCounter = typeof d.idCounter === 'number' ? d.idCounter : 0;
+        sortMode = d.sortMode || 'newest';
+        sessions = [makeSession(1, 'Session 1', d.solvesByEvent, d.scrambles)];
+        currentSession = 1;
+      }
+    }
+  } catch (err) { /* ignore bad data */ }
+  if (!sessions || !sessions.length) {
+    sessions = [makeSession(1, 'Session 1')];
+    currentSession = 1;
+  }
+}
+
+function restoreScramble() {
+  currentScramble = scrambles[currentEvent] || '';
+  if (currentScramble) showScramble();
+  else newScramble();
+}
+
+function defaultName() {
+  return 'Session ' + (sessions.length + 1);
+}
+
+function updateSessionUI() {
+  renderProfile();
+  const s = activeSession();
+  sessionBtn.textContent = (s ? s.name : 'Session') + '  ▾';
+  sessionBtn.disabled = state !== 'menu';
+}
+
+function renderSessionMenu() {
+  const items = sessions.map(s => {
+    const count = Object.values(s.solvesByEvent || {}).reduce((a, arr) => a + (Array.isArray(arr) ? arr.length : 0), 0);
+    return `<button data-action="session" data-id="${s.id}" class="${s.id === currentSession ? 'active' : ''}">${esc(s.name)}<span class="sub">${count} solves</span></button>`;
+  }).join('');
+  const single = sessions.length <= 1 ? ' disabled' : '';
+  sessionMenu.innerHTML = items +
+    '<div class="menu-sep"></div>' +
+    '<button data-action="addSession">+ Add session</button>' +
+    '<button data-action="renameSession">Rename current</button>' +
+    `<button data-action="removeSession" class="danger"${single}>Remove current</button>`;
+}
+
+function hideMenus() {
+  hideEventMenu();
+  sessionMenu.hidden = true;
+  accountMenu.hidden = true;
+}
+
+function toggleSessionMenu(anchor) {
+  if (!sessionMenu.hidden) {
+    hideMenus();
+    return;
+  }
+  hideMenus();
+  renderSessionMenu();
+  const r = anchor.getBoundingClientRect();
+  sessionMenu.style.left = r.left + 'px';
+  sessionMenu.style.top = (r.bottom + 6) + 'px';
+  sessionMenu.hidden = false;
+}
+
+function switchSession(id) {
+  hideMenus();
+  if (state !== 'menu' || id === currentSession) return;
+  syncActive();
+  activateSession(id);
+  openId = null;
+  statOpenId = null;
+  pendingDelete = null;
+  restoreScramble();
+  refresh();
+}
+
+function showSessionPopup() {
+  hideMenus();
+  if (sessions.length > 1) sessionPopup.hidden = false;
+}
+
+function hideSessionPopup() {
+  sessionPopup.hidden = true;
+}
+
+function removeSession() {
+  if (sessions.length <= 1) return;
+  const idx = sessions.findIndex(s => s.id === currentSession);
+  sessions.splice(idx, 1);
+  activateSession(sessions[Math.max(0, idx - 1)].id);
+  openId = null;
+  statOpenId = null;
+  pendingDelete = null;
+  restoreScramble();
+  refresh();
+}
+
+function openNameModal(mode) {
+  hideMenus();
+  if (state !== 'menu') return;
+  nameMode = mode;
+  nameTitle.textContent = mode === 'rename' ? 'Rename session' : 'New session';
+  nameInput.value = mode === 'rename' ? activeSession().name : '';
+  nameModal.hidden = false;
+  nameInput.focus();
+}
+
+function hideNameModal() {
+  nameModal.hidden = true;
+}
+
+function commitName() {
+  if (nameModal.hidden) return;
+  const name = nameInput.value.trim().slice(0, 24) || defaultName();
+  if (nameMode === 'rename') {
+    const s = activeSession();
+    if (s) s.name = name;
+  } else {
+    syncActive();
+    const id = Date.now();
+    sessions.push(makeSession(id, name));
+    activateSession(id);
+    openId = null;
+    statOpenId = null;
+    pendingDelete = null;
+    newScramble();
+  }
+  hideNameModal();
+  refresh();
+}
+
+// ---------- import solve ----------
+function scrambleValid(text, ev) {
+  if (!text) return false;
+  const tokens = text.split(' ');
+  const re = ev.type === 'pyra' ? /^[ULRBulrb]('|2)?$/ : /^[RLUDFB]w?('|2)?$/;
+  if (!tokens.every(t => re.test(t))) return false;
+  if (ev.type !== 'pyra' && ev.n < 4 && tokens.some(t => t.includes('w'))) return false;
+  return true;
+}
+
+function parseTimeInput(text) {
+  const t = text.trim();
+  if (!t) return null;
+  if (/^dnf$/i.test(t)) return { ms: 0, pen: 'DNF' };
+  let pen = 0, s = t;
+  if (s.endsWith('+')) {
+    pen = 2;
+    s = s.slice(0, -1).trim();
+  }
+  const m = s.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const min = m[1] ? parseInt(m[1], 10) : 0;
+  const sec = parseFloat(m[2]);
+  return { ms: Math.round((min * 60 + sec) * 1000), pen };
+}
+
+function openImport() {
+  if (state !== 'menu') return;
+  hideMenus();
+  document.getElementById('importScramble').value = '';
+  document.getElementById('importTime').value = '';
+  document.getElementById('importError').textContent = '';
+  document.getElementById('importModal').hidden = false;
+  document.getElementById('importScramble').focus();
+}
+
+function hideImport() {
+  document.getElementById('importModal').hidden = true;
+}
+
+function saveImport() {
+  const errEl = document.getElementById('importError');
+  const sc = document.getElementById('importScramble').value.trim().split(/\s+/).join(' ');
+  const ev = EVENTS[currentEvent];
+  if (!scrambleValid(sc, ev)) {
+    errEl.textContent = 'Scramble moves are not valid for ' + ev.name + '.';
+    return;
+  }
+  const tm = parseTimeInput(document.getElementById('importTime').value);
+  if (!tm) {
+    errEl.textContent = 'Time not recognized. Try 12.34, 1:02.34, DNF or 12.34+.';
+    return;
+  }
+  solves.push({ id: ++idCounter, ms: tm.ms, pen: tm.pen, scramble: sc, date: Date.now() });
+  hideImport();
+  refresh();
+}
+
+// ---------- rendering: scramble and timer ----------
+function setTimer(text, cls) {
+  timerEl.textContent = text;
+  timerEl.className = 'timer' + (cls ? ' ' + cls : '');
+}
+
+function showScramble() {
+  scrambleEl.textContent = currentScramble;
+  netEl.innerHTML = netFor(currentScramble, EVENTS[currentEvent]);
+  netEl.classList.remove('flash');
+  void netEl.offsetWidth;
+  netEl.classList.add('flash');
+}
+
+function newScramble() {
+  currentScramble = genScramble(EVENTS[currentEvent]);
+  scrambles[currentEvent] = currentScramble;
+  showScramble();
+}
+
+function updateTimerActions() {
+  const last = solves[solves.length - 1];
+  timerActions.classList.toggle('hidden', state !== 'menu');
+  for (const id of ['tPen2', 'tPenDNF', 'tDel']) {
+    const b = document.getElementById(id);
+    b.disabled = !last;
+    if (last) b.dataset.id = last.id;
+  }
+  document.getElementById('tPen2').classList.toggle('on', !!last && last.pen === 2);
+  document.getElementById('tPenDNF').classList.toggle('on', !!last && last.pen === 'DNF');
+}
+
+function showLast() {
+  if (state !== 'menu') return;
+  const last = solves[solves.length - 1];
+  setTimer(last ? solveText(last) : '0.00', '');
+  updateTimerActions();
+}
+
+function renderStats() {
+  const rows = [
+    ['Best', bestStat()],
+    ['Mo3', avgStat(3, 0)],
+    ['Ao5', avgStat(5, 1)],
+    ['Ao12', avgStat(12, 1)],
+    ['Ao100', avgStat(100, 5)]
+  ];
+  document.getElementById('stats').innerHTML = rows
+    .map(([label, val]) => `<div class="row"><span>${label}</span><span>${val}</span></div>`)
+    .join('');
+}
+
+// ---------- shared solve cards ----------
+function openCardHTML(s, n, toggleAction, enter) {
+  const when = new Date(s.date).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  const toggle = toggleAction ? ` data-action="${toggleAction}" data-id="${s.id}"` : '';
+  return `<div class="card open${enter ? ' enter' : ''}">
+    <div class="meta">${CLOCK_ICON}<span>${when}</span></div>
+    <div class="meta">${CUBE_ICON}<span>Solve #${n}</span></div>
+    <div class="t"${toggle}>${solveText(s)}</div>
+    <div class="sc">${s.scramble}</div>
+    <div class="note-row"><span class="note-text">${s.note ? esc(s.note) : '<span class="muted-note">No note</span>'}</span></div>
+    <div class="details">
+      <div class="actions">
+        <button data-action="pen2" data-id="${s.id}" class="${s.pen === 2 ? 'on' : ''}">+2</button>
+        <button data-action="penDNF" data-id="${s.id}" class="${s.pen === 'DNF' ? 'on' : ''}">DNF</button>
+        <button data-action="note" data-id="${s.id}" class="note-btn" title="Add or edit note">${PENCIL_ICON}<span>Note</span></button>
+        <button data-action="del" data-id="${s.id}" class="danger">Delete solve</button>
+      </div>
+    </div>
+    <div class="fullnet">${netFor(s.scramble, EVENTS[currentEvent])}</div>
+  </div>`;
+}
+
+function compactCardHTML(s, n, action) {
+  return `<div class="card">
+    <div class="idx">${CUBE_ICON}<span>#${n}</span></div>
+    <div class="t" data-action="${action}" data-id="${s.id}">${solveText(s)}</div>
+  </div>`;
+}
+
+// ---------- rendering: solves ----------
+function sortedIndices() {
+  const order = solves.map((s, i) => i);
+  const cmpNum = (x, y) => (x === y ? 0 : x < y ? -1 : 1);
+  const cmp = {
+    fastest: (a, b) => cmpNum(effTime(solves[a]), effTime(solves[b])),
+    slowest: (a, b) => cmpNum(effTime(solves[b]), effTime(solves[a])),
+    newest: (a, b) => b - a,
+    oldest: (a, b) => a - b
+  }[sortMode];
+  return order.sort(cmp);
+}
+
+function renderSolves() {
+  const list = document.getElementById('solvesList');
+  const enterId = animatedOpenId !== openId ? openId : null;
+  animatedOpenId = openId;
+  if (!solves.length) {
+    list.innerHTML = '<div class="empty">No solves yet in this event.</div>';
+  } else {
+    let html = '';
+    for (const i of sortedIndices()) {
+      const s = solves[i];
+      if (s.id === openId) html += openCardHTML(s, i + 1, 'open', s.id === enterId);
+      else html += compactCardHTML(s, i + 1, 'open');
+    }
+    list.innerHTML = html;
+  }
+  document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('active', b.dataset.sort === sortMode));
+
+}
+
+// ---------- rendering: stats tab ----------
+function singleCurrent() {
+  if (!solves.length) return null;
+  const vals = solves.map(effTime).filter(isFinite);
+  return vals.length ? Math.min(...vals) : Infinity;
+}
+
+function renderStatsCards() {
+  const cards = STAT_DEFS.map(def => {
+    const cur = def.n === 1 ? singleCurrent() : currentValue(def.n, def.trim);
+    const bestVal = def.n === 1 ? (bestSingleIndex() < 0 ? null : effTime(solves[bestSingleIndex()])) : bestValue(def.n, def.trim);
+    const bestBtn = bestVal === null
+      ? ''
+      : `<button class="scard-best" data-action="statFocus" data-stat="${def.key}">Best ${fmt(bestVal)}</button>`;
+    return `<div class="scard${statFocus === def.key ? ' focus' : ''}">
+      <div class="scard-top">
+        <span class="scard-label">${def.key}</span>
+        <span class="scard-cur">${displayValue(cur)}</span>
+      </div>
+      ${bestBtn}
+    </div>`;
+  });
+  document.getElementById('statCards').innerHTML = cards.join('');
+}
+
+function renderStatDetail() {
+  const host = document.getElementById('statDetail');
+  if (!statFocus) {
+    host.innerHTML = '';
+    return;
+  }
+  const def = STAT_DEFS.find(d => d.key === statFocus);
+  if (def.n === 1) {
+    const idx = bestSingleIndex();
+    host.innerHTML = idx < 0 ? '' : `<div class="detail-title">Best solve</div>${openCardHTML(solves[idx], idx + 1, null, false)}`;
+    return;
+  }
+  const w = bestWindow(def.n, def.trim);
+  if (!w) {
+    host.innerHTML = `<div class="empty">Need ${def.n} solves to show ${def.key}.</div>`;
+    return;
+  }
+  let html = `<div class="detail-title">Best ${def.key}: ${fmt(w.value)}</div><div class="detail-list">`;
+  for (let i = w.start; i <= w.end; i++) {
+    const s = solves[i];
+    html += s.id === statOpenId ? openCardHTML(s, i + 1, 'statOpen', false) : compactCardHTML(s, i + 1, 'statOpen');
+  }
+  html += '</div>';
+  host.innerHTML = html;
+}
+
+function chartSVG() {
+  if (!solves.length) return '<div class="empty">Finish a solve to see your chart.</div>';
+  const W = Math.max(320, document.getElementById('chart').clientWidth || 800), H = 320, P = 48;
+  const len = solves.length;
+  const times = solves.map(effTime);
+  const finite = times.filter(isFinite);
+  const ao5 = [];
+  for (let i = 4; i < len; i++) ao5.push({ i, v: trimmedAvg(times.slice(i - 4, i + 1), 1) });
+  const allVals = [...finite, ...ao5.map(p => p.v).filter(isFinite)];
+  if (!allVals.length) return '<div class="empty">Not enough valid solves to chart.</div>';
+  let minY = Math.min(...allVals), maxY = Math.max(...allVals);
+  const pad = Math.max((maxY - minY) * 0.1, 500);
+  minY = Math.max(0, minY - pad);
+  maxY = maxY + pad;
+
+  const x = i => P + (len === 1 ? (W - 2 * P) / 2 : (i / (len - 1)) * (W - 2 * P));
+  const y = v => H - P - ((v - minY) / (maxY - minY)) * (H - 2 * P);
+
+  let grid = '';
+  for (let k = 0; k <= 4; k++) {
+    const v = minY + (k / 4) * (maxY - minY);
+    const yy = y(v).toFixed(1);
+    grid += `<line class="grid" x1="${P}" x2="${W - P}" y1="${yy}" y2="${yy}"/>`;
+    grid += `<text class="axis" x="${P - 8}" y="${yy}" text-anchor="end" dominant-baseline="middle">${fmt(v)}</text>`;
+  }
+
+  const finitePts = times.map((t, i) => ({ i, t })).filter(p => isFinite(p.t));
+  const linePts = finitePts.map(p => `${x(p.i).toFixed(1)},${y(p.t).toFixed(1)}`).join(' ');
+  const dots = finitePts.map(p => `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.t).toFixed(1)}" r="3.5" fill="#9fb3c8"/>`).join('');
+  const dnfs = times.map((t, i) => (isFinite(t) ? '' : `<circle cx="${x(i).toFixed(1)}" cy="${H - P + 14}" r="4" fill="#ff5d5d"/>`)).join('');
+  const ao5Pts = ao5.filter(p => isFinite(p.v)).map(p => `${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
+
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${grid}
+    <polyline points="${linePts}" fill="none" stroke="#9fb3c8" stroke-width="1.5" stroke-opacity="0.5"/>
+    ${ao5Pts ? `<polyline points="${ao5Pts}" fill="none" stroke="#5fd38d" stroke-width="2.5" stroke-linejoin="round"/>` : ''}
+    ${dots}
+    ${dnfs}
+    <text class="axis" x="${P}" y="${H - 8}">#1</text>${len > 1 ? `<text class="axis" x="${W - P}" y="${H - 8}" text-anchor="end">#${len}</text>` : ''}
+  </svg>`;
+}
+
+function renderStatsView() {
+  renderStatsCards();
+  renderStatDetail();
+  document.getElementById('chart').innerHTML = chartSVG();
+}
+
+// ---------- event menu ----------
+function buildEventMenu() {
+  eventMenu.innerHTML = Object.keys(EVENTS)
+    .map(k => `<button data-action="event" data-event="${k}">${EVENTS[k].name}</button>`)
+    .join('');
+}
+
+function updateEventUI() {
+  eventBtn.textContent = EVENTS[currentEvent].name + '  \u25BE';
+  eventBtn.disabled = state !== 'menu';
+  eventMenu.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.event === currentEvent));
+}
+
+function hideEventMenu() {
+  eventMenu.hidden = true;
+}
+
+function toggleEventMenu(anchor) {
+  if (!eventMenu.hidden) {
+    hideEventMenu();
+    return;
+  }
+  const r = anchor.getBoundingClientRect();
+  eventMenu.style.left = r.left + 'px';
+  eventMenu.style.top = (r.bottom + 6) + 'px';
+  eventMenu.hidden = false;
+}
+
+function setEvent(key) {
+  hideEventMenu();
+  if (state !== 'menu' || key === currentEvent) return;
+  solvesByEvent[currentEvent] = solves;
+  currentEvent = key;
+  solves = solvesByEvent[key] || (solvesByEvent[key] = []);
+  openId = null;
+  pendingDelete = null;
+  statOpenId = null;
+  currentScramble = scrambles[key] || '';
+  if (currentScramble) showScramble();
+  else newScramble();
+  refresh();
+}
+
+// ---------- refresh and views ----------
+function refresh() {
+  save();
+  document.body.classList.toggle('focus-mode', state !== 'menu');
+  updateSessionUI();
+  renderSolves();
+  showLast();
+  renderStats();
+  if (view === 'stats') renderStatsView();
+  updateEventUI();
+  navTimer.disabled = state !== 'menu';
+  navSolves.disabled = state !== 'menu';
+  navStats.disabled = state !== 'menu';
+}
+
+function setView(v) {
+  if (state !== 'menu') return;
+  hideEventMenu();
+  view = v;
+  timerView.hidden = v !== 'timer';
+  solvesView.hidden = v !== 'solves';
+  statsView.hidden = v !== 'stats';
+  learnView.hidden = v !== 'learn';
+  navTimer.classList.toggle('active', v === 'timer');
+  navSolves.classList.toggle('active', v === 'solves');
+  navStats.classList.toggle('active', v === 'stats');
+  navLearn.classList.toggle('active', v === 'learn');
+  if (v === 'solves') renderSolves();
+  if (v === 'learn') {
+    learnPage = 'home';
+    learnCase = null;
+    renderLearn();
+  }
+  if (v === 'stats') {
+    statFocus = null;
+    statOpenId = null;
+    renderStatsView();
+  }
+}
+
+// ---------- delete popup and copy ----------
+function showPopup(id) {
+  pendingDelete = id;
+  popup.hidden = false;
+}
+
+function hidePopup() {
+  pendingDelete = null;
+  popup.hidden = true;
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (err) { /* ignore */ }
+  ta.remove();
+}
+
+function showCopied(x, y) {
+  const t = document.getElementById('copyToast');
+  t.textContent = 'Copied';
+  t.style.left = x + 'px';
+  t.style.top = (y - 34) + 'px';
+  t.hidden = false;
+  t.classList.remove('pop');
+  void t.offsetWidth;
+  t.classList.add('pop');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 900);
+}
+
+function copyText(text, el, x, y) {
+  const done = () => {
+    showCopied(x, y);
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 700);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => { fallbackCopy(text); done(); });
+  } else {
+    fallbackCopy(text);
+    done();
+  }
+}
+
+// ---------- personal best panel and confetti ----------
+function pbSnapshot() {
+  return STAT_DEFS.map(def => ({ key: def.key, val: bestValue(def.n, def.trim) }));
+}
+
+function hidePbPanel() {
+  clearTimeout(pbTimer);
+  pbPanel.hidden = true;
+}
+
+function showPbPanel(before, after) {
+  const rows = after.map((a, i) => {
+    const b = before[i].val;
+    const n = a.val;
+    let text;
+    if (n === null) text = `${a.key}: need more solves`;
+    else if (b === null) text = `${a.key}: ${fmt(n)} <span class="gain">(new)</span>`;
+    else if (n < b) text = `${a.key}: ${fmt(b)} &gt; ${fmt(n)} <span class="gain">(-${((b - n) / 1000).toFixed(2)}s)</span>`;
+    else text = `${a.key}: ${fmt(n)} <span class="muted">(no change)</span>`;
+    return `<div class="pb-row">${text}</div>`;
+  });
+  pbPanel.innerHTML = `<div class="pb-title">Personal bests</div>${rows.join('')}`;
+  pbPanel.hidden = false;
+  pbPanel.style.animation = 'none';
+  void pbPanel.offsetWidth;
+  pbPanel.style.animation = '';
+  clearTimeout(pbTimer);
+  pbTimer = setTimeout(hidePbPanel, 6000);
+}
+
+function confetti() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:200';
+  document.body.appendChild(canvas);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = innerWidth * dpr;
+  canvas.height = innerHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const colors = ['#5fd38d', '#f5b53c', '#ff5d5d', '#2b6fd6', '#f4d03f', '#e8ecf1', '#d7261e'];
+  const parts = [];
+  for (let i = 0; i < 160; i++) {
+    parts.push({
+      x: innerWidth / 2 + (Math.random() - 0.5) * 200,
+      y: innerHeight * 0.4,
+      vx: (Math.random() - 0.5) * 14,
+      vy: -Math.random() * 14 - 4,
+      s: Math.random() * 6 + 4,
+      r: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.3,
+      c: colors[Math.floor(Math.random() * colors.length)]
+    });
+  }
+  const start = performance.now();
+  function frame(now) {
+    const t = now - start;
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (const p of parts) {
+      p.vy += 0.35;
+      p.vx *= 0.99;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.r += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r);
+      ctx.globalAlpha = Math.max(0, 1 - t / 3000);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+      ctx.restore();
+    }
+    if (t < 3000) requestAnimationFrame(frame);
+    else canvas.remove();
+  }
+  requestAnimationFrame(frame);
+}
+
+// ---------- accounts (stored in this browser) ----------
+const ACC_KEY = 'cubeTimer.accounts';
+const AUTH_KEY = 'cubeTimer.auth';
+const profileBtn = document.getElementById('profileBtn');
+const accountMenu = document.getElementById('accountMenu');
+const authModal = document.getElementById('authModal');
+const editModal = document.getElementById('editModal');
+const pfpInput = document.getElementById('pfpInput');
+let accounts = [];
+let currentAccount = null;
+let authMode = 'login';
+let editMode = 'name';
+
+function loadAccounts() {
+  try { accounts = JSON.parse(localStorage.getItem(ACC_KEY) || '[]'); } catch (err) { accounts = []; }
+  if (!Array.isArray(accounts)) accounts = [];
+}
+
+function saveAccounts() {
+  try { localStorage.setItem(ACC_KEY, JSON.stringify(accounts)); } catch (err) { /* storage unavailable */ }
+}
+
+function loadAuth() {
+  loadAccounts();
+  let cur = null;
+  try { cur = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}').current ?? null; } catch (err) { cur = null; }
+  currentAccount = accounts.some(a => a.id === cur) ? cur : null;
+}
+
+function persistAuth() {
+  try { localStorage.setItem(AUTH_KEY, JSON.stringify({ current: currentAccount })); } catch (err) { /* ignore */ }
+}
+
+function storeKey() {
+  return currentAccount ? 'cubeTimer.user.' + currentAccount : SESSION_KEY;
+}
+
+function accountOf() {
+  return accounts.find(a => a.id === currentAccount) || null;
+}
+
+function findByName(name) {
+  const n = name.trim().toLowerCase();
+  return accounts.find(a => a.name.toLowerCase() === n) || null;
+}
+
+function newSalt() {
+  let s = '';
+  for (let i = 0; i < 16; i++) s += Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+  return s;
+}
+
+// SHA-256 when the browser provides it; otherwise the password is only lightly obscured
+function hashPassword(password, salt) {
+  const text = salt + ':' + password;
+  if (window.crypto && crypto.subtle) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+      .then(buf => Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join(''));
+  }
+  return Promise.resolve('raw:' + text);
+}
+
+function renderProfile() {
+  const acc = accountOf();
+  profileBtn.disabled = state !== 'menu';
+  if (!acc) {
+    profileBtn.innerHTML = '<span class="avatar">?</span><span class="profile-name">Login</span>';
+  } else {
+    const pic = acc.pfp ? ` style="background-image:url('${acc.pfp}')"` : '';
+    const initial = acc.pfp ? '' : esc(acc.name.charAt(0).toUpperCase());
+    profileBtn.innerHTML = `<span class="avatar"${pic}>${initial}</span><span class="profile-name">${esc(acc.name)}</span>`;
+  }
+}
+
+function reloadForAccount() {
+  sessions = [];
+  currentSession = 1;
+  openId = null;
+  statOpenId = null;
+  pendingDelete = null;
+  loadSessions();
+  activateSession(currentSession);
+  restoreScramble();
+  refresh();
+}
+
+function switchAccount(id) {
+  save();
+  currentAccount = id;
+  persistAuth();
+  reloadForAccount();
+}
+
+function logout() {
+  if (state !== 'menu') return;
+  hideMenus();
+  switchAccount(null);
+}
+
+// login / sign up
+function openAuth(mode) {
+  if (state !== 'menu') return;
+  hideMenus();
+  setAuthMode(mode);
+  document.getElementById('authName').value = '';
+  document.getElementById('authPass').value = '';
+  document.getElementById('authPass2').value = '';
+  document.getElementById('authError').textContent = '';
+  authModal.hidden = false;
+  document.getElementById('authName').focus();
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const signup = mode === 'signup';
+  document.getElementById('authTitle').textContent = signup ? 'Sign up' : 'Log in';
+  document.getElementById('tabLogin').classList.toggle('active', !signup);
+  document.getElementById('tabSignup').classList.toggle('active', signup);
+  document.getElementById('authConfirmWrap').hidden = !signup;
+  document.getElementById('authSubmitBtn').textContent = signup ? 'Sign up' : 'Log in';
+  document.getElementById('forgotBtn').hidden = signup;
+}
+
+function closeAuth() {
+  authModal.hidden = true;
+}
+
+async function submitAuth() {
+  const name = document.getElementById('authName').value.trim();
+  const pass = document.getElementById('authPass').value;
+  const pass2 = document.getElementById('authPass2').value;
+  const err = document.getElementById('authError');
+  err.textContent = '';
+  if (!name) { err.textContent = 'Enter a name.'; return; }
+  if (authMode === 'signup') {
+    if (findByName(name)) { err.textContent = 'That name is taken.'; return; }
+    if (pass.length < 4) { err.textContent = 'Password needs at least 4 characters.'; return; }
+    if (pass !== pass2) { err.textContent = 'Passwords do not match.'; return; }
+    const salt = newSalt();
+    const acc = { id: Date.now(), name: name.slice(0, 20), salt, pwHash: await hashPassword(pass, salt), pfp: null };
+    accounts.push(acc);
+    saveAccounts();
+    closeAuth();
+    switchAccount(acc.id);
+  } else {
+    const acc = findByName(name);
+    if (!acc || (await hashPassword(pass, acc.salt)) !== acc.pwHash) {
+      err.textContent = 'Wrong name or password.';
+      return;
+    }
+    closeAuth();
+    switchAccount(acc.id);
+  }
+}
+
+// account menu
+function toggleAccountMenu(anchor) {
+  if (!accountMenu.hidden) {
+    hideMenus();
+    return;
+  }
+  hideMenus();
+  accountMenu.innerHTML =
+    '<button data-action="changePfp">Change profile picture</button>' +
+    '<button data-action="editName">Change name</button>' +
+    '<button data-action="editPassword">Change password</button>' +
+    '<div class="menu-sep"></div>' +
+    '<button data-action="logout" class="danger">Log out</button>';
+  const r = anchor.getBoundingClientRect();
+  accountMenu.style.left = (r.right + 8) + 'px';
+  accountMenu.style.top = r.top + 'px';
+  accountMenu.hidden = false;
+}
+
+function onProfileClick(el) {
+  if (state !== 'menu') return;
+  if (!accountOf()) openAuth('login');
+  else toggleAccountMenu(el);
+}
+
+// change name / password
+function openEdit(mode) {
+  const acc = accountOf();
+  if (state !== 'menu' || !acc) return;
+  hideMenus();
+  editMode = mode;
+  document.getElementById('editError').textContent = '';
+  const fields = document.getElementById('editFields');
+  if (mode === 'name') {
+    document.getElementById('editTitle').textContent = 'Change name';
+    fields.innerHTML = '<label class="field-label" for="editF0">New name</label>' +
+      '<input class="name-input" id="editF0" maxlength="20" autocomplete="off" value="' + esc(acc.name) + '">';
+  } else {
+    document.getElementById('editTitle').textContent = 'Change password';
+    fields.innerHTML =
+      '<label class="field-label" for="editF0">New password</label>' +
+      '<input class="name-input" id="editF0" type="password" autocomplete="new-password">' +
+      '<label class="field-label" for="editF1">Confirm new password</label>' +
+      '<input class="name-input" id="editF1" type="password" autocomplete="new-password">';
+  }
+  editModal.hidden = false;
+  document.getElementById('editF0').focus();
+}
+
+function closeEdit() {
+  editModal.hidden = true;
+}
+
+async function saveEdit() {
+  const acc = accountOf();
+  if (!acc) return;
+  const err = document.getElementById('editError');
+  err.textContent = '';
+  const val = id => document.getElementById(id).value;
+  if (editMode === 'name') {
+    const name = val('editF0').trim();
+    if (!name) { err.textContent = 'Enter a name.'; return; }
+    const other = findByName(name);
+    if (other && other.id !== acc.id) { err.textContent = 'That name is taken.'; return; }
+    acc.name = name.slice(0, 20);
+  } else {
+    if (val('editF0').length < 4) { err.textContent = 'New password needs at least 4 characters.'; return; }
+    if (val('editF0') !== val('editF1')) { err.textContent = 'Passwords do not match.'; return; }
+    acc.salt = newSalt();
+    acc.pwHash = await hashPassword(val('editF0'), acc.salt);
+  }
+  saveAccounts();
+  closeEdit();
+  renderProfile();
+}
+
+// profile picture
+function changePfp() {
+  hideMenus();
+  pfpInput.value = '';
+  pfpInput.click();
+}
+
+pfpInput.addEventListener('change', () => {
+  const file = pfpInput.files && pfpInput.files[0];
+  const acc = accountOf();
+  if (!file || !acc) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 128;
+      const c = document.createElement('canvas');
+      c.width = size;
+      c.height = size;
+      const s = Math.min(img.width, img.height);
+      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      acc.pfp = c.toDataURL('image/jpeg', 0.85);
+      saveAccounts();
+      renderProfile();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// forgot password: deleting the account is the only way back in without the password
+const forgotPopup = document.getElementById('forgotPopup');
+let forgotCandidate = null;
+
+function showForgot() {
+  const name = document.getElementById('authName').value.trim();
+  const err = document.getElementById('authError');
+  const acc = name ? findByName(name) : null;
+  if (!acc) {
+    err.textContent = name ? 'No account with that name.' : 'Type the account name first.';
+    return;
+  }
+  err.textContent = '';
+  forgotCandidate = acc.id;
+  document.getElementById('forgotText').textContent =
+    'Delete "' + acc.name + '" and all its solves, sessions and picture? This can\'t be undone.';
+  forgotPopup.hidden = false;
+}
+
+function hideForgot() {
+  forgotPopup.hidden = true;
+  forgotCandidate = null;
+}
+
+function confirmForgot() {
+  if (forgotCandidate === null) return;
+  const id = forgotCandidate;
+  accounts = accounts.filter(a => a.id !== id);
+  try { localStorage.removeItem('cubeTimer.user.' + id); } catch (err) { /* ignore */ }
+  saveAccounts();
+  hideForgot();
+  if (currentAccount === id) {
+    currentAccount = null;
+    persistAuth();
+    reloadForAccount();
+  }
+  document.getElementById('authPass').value = '';
+  document.getElementById('authPass2').value = '';
+  document.getElementById('authError').textContent = 'Account deleted. You can sign up again with that name.';
+}
+
+// ---------- solve notes ----------
+const PENCIL_ICON = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+let noteSolveId = null;
+
+function openNote(id) {
+  const s = solves.find(x => x.id === id);
+  if (!s) return;
+  noteSolveId = id;
+  document.getElementById('noteInput').value = s.note || '';
+  document.getElementById('noteModal').hidden = false;
+  document.getElementById('noteInput').focus();
+}
+
+function hideNote() {
+  document.getElementById('noteModal').hidden = true;
+  noteSolveId = null;
+}
+
+function saveNote() {
+  const s = solves.find(x => x.id === noteSolveId);
+  if (s) {
+    const text = document.getElementById('noteInput').value.trim();
+    if (text) s.note = text.slice(0, 200);
+    else delete s.note;
+  }
+  hideNote();
+  refresh();
+}
+
+// ---------- learn tab (CFOP) ----------
+// only algorithms that passed the simulator checks are listed as verified
+const learnView = document.getElementById('learnView');
+const navLearn = document.getElementById('navLearn');
+let learnPage = 'home';
+let learnCase = null;
+
+const PLL_CASES = [
+  { name: 'Aa', alg: "x R' U R' D2 R U' R' D2 R2 x'" },
+  { name: 'F', alg: "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R" },
+  { name: 'Gb', alg: "R' U' R U D' R2 U R' U R U' R U' R2 D" },
+  { name: 'Gd', alg: "R U R' U' D R2 U' R U' R' U R' U R2 D'" },
+  { name: 'H', alg: "M2 U M2 U2 M2 U M2" },
+  { name: 'Jb', alg: "R U R' F' R U R' U' R' F R2 U' R'" },
+  { name: 'Na', alg: "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'" },
+  { name: 'Ra', alg: "R U' R' U' R U R D R' U' R D' R' U2 R'" },
+  { name: 'T', alg: "R U R' U' R' F R2 U' R' U' R U R' F'" },
+  { name: 'Ua', alg: "M2 U M U2 M' U M2" },
+  { name: 'Ub', alg: "M2 U' M U2 M' U' M2" },
+  { name: 'Y', alg: "F R U' R' U' R U R' F' R U R' U' R' F R F'" },
+  { name: 'Z', alg: "M' U M2 U M2 U M' U2 M2" },
+  { name: 'E', alg: "x' R U' R' D R U R' D' R U R' D R U' R' D' x" },
+  { name: 'Ja', alg: "x R2 F R F' R U2 r' U r U2 x'" },
+  { name: 'Ab', alg: "x R2 D2 R U R' D2 R U' R x'" },
+  { name: 'Rb', alg: "R' U2 R U2 R' F R U R' U' R' F' R2" },
+  { name: 'Nb', alg: "R' U R U' R' F' U' F R U R' U' R U' f R f'" }
+];
+const PLL_PENDING = ['Ga', 'Gc', 'V'];
+
+function learnHTML() {
+  const back = label => `<button class="learn-back" data-action="learnBack">&larr; ${label}</button>`;
+  if (learnCase) {
+    const c = PLL_CASES.find(x => x.name === learnCase);
+    if (!c) return '';
+    return back('All PLL') +
+      `<h3 class="learn-h">${c.name} Perm</h3>` +
+      '<div class="learn-text">Keeps the first two layers and the top face intact.</div>' +
+      `<div class="alg">${c.alg}</div>` +
+      `<div class="casepic">${caseTopSVG(puzzleFromScramble(invertAlg(c.alg), EVENTS['3x3']))}</div>` +
+      `<div class="learn-status">${c.alg.split(' ').length} moves</div>`;
+  }
+  if (learnPage === 'pll') {
+    const verified = PLL_CASES.map(c =>
+      `<button class="learn-card" data-action="learnCase" data-case="${c.name}"><b>${c.name} Perm</b></button>`).join('');
+    const pending = PLL_PENDING.map(n =>
+      `<button class="learn-card" disabled><b>${n} Perm</b><div class="learn-status">Not verified yet</div></button>`).join('');
+    return back('CFOP Method') +
+      '<h3 class="learn-h">PLL: permuting the last layer</h3>' +
+      '<div class="learn-text">21 cases. Each case shows its algorithm once it has passed the checks.</div>' +
+      `<div class="learn-grid">${verified}${pending}</div>`;
+  }
+  if (learnPage === 'f2l' || learnPage === 'oll') {
+    const isF2L = learnPage === 'f2l';
+    return back('CFOP Method') +
+      `<h3 class="learn-h">${isF2L ? 'F2L: first two layers' : 'OLL: orienting the last layer'}</h3>` +
+      `<div class="learn-text">${isF2L ? '41 cases. Pair each corner with its edge and insert them together.' : '57 cases. Make the whole top face one colour.'}</div>` +
+      '<div class="learn-status">Not verified yet. Algorithms appear here once they pass the checks.</div>';
+  }
+  if (learnPage === 'home') {
+    return '<h3 class="learn-h">Learn</h3>' +
+      '<div class="learn-text">Choose a method to study.</div>' +
+      '<div class="learn-grid">' +
+        '<button class="learn-card" data-action="learnGo" data-page="cfop"><b>CFOP</b><div class="learn-status">Cross, F2L, OLL, PLL</div></button>' +
+      '</div>';
+  }
+  return back('Learn') +
+    '<h3 class="learn-h">CFOP Method</h3>' +
+    '<div class="learn-text">CFOP solves the cube in four steps: Cross, F2L, OLL, and PLL.</div>' +
+    '<h3 class="learn-h">Cross</h3>' +
+    '<div class="learn-text">Solve the four white edges around the white centre so each edge matches the centre colour beside it. Build it on the bottom face and make sure every edge lines up with its side colour.</div>' +
+    '<div class="learn-grid">' +
+      '<button class="learn-card" data-action="learnGo" data-page="f2l"><b>F2L</b><div class="learn-status">41 cases</div></button>' +
+      '<button class="learn-card" data-action="learnGo" data-page="oll"><b>OLL</b><div class="learn-status">57 cases</div></button>' +
+      '<button class="learn-card" data-action="learnGo" data-page="pll"><b>PLL</b><div class="learn-status">21 cases</div></button>' +
+    '</div>';
+}
+
+// top-down case picture: the last layer with the side stickers around it
+function caseTopSVG(cube) {
+  const CELL = 40, GAP = 4;
+  let rects = '';
+  for (const cub of cube) {
+    const x = cub.pos[0] / 2, y = cub.pos[1] / 2, z = cub.pos[2] / 2;
+    if (y !== 1) continue;
+    for (const st of cub.stickers) {
+      const fk = keyOf(st.n);
+      let gx, gy;
+      if (fk === 'y+') { gx = x + 2; gy = z + 2; }      // centre 3x3
+      else if (fk === 'z-') { gx = x + 2; gy = 0; }     // back strip (top)
+      else if (fk === 'z+') { gx = x + 2; gy = 4; }     // front strip (bottom)
+      else if (fk === 'x-') { gx = 0; gy = z + 2; }     // left strip
+      else if (fk === 'x+') { gx = 4; gy = z + 2; }     // right strip
+      else continue;
+      rects += `<rect x="${gx * (CELL + GAP)}" y="${gy * (CELL + GAP)}" width="${CELL}" height="${CELL}" rx="6" fill="${COLORS[st.c]}"/>`;
+    }
+  }
+  const size = 5 * CELL + 4 * GAP;
+  return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">${rects}</svg>`;
+}
+
+function invertAlg(alg) {
+  return alg.split(' ').reverse().map(t => {
+    const f = t[0], m = t.slice(1);
+    return f + (m === '' ? "'" : m === "'" ? '' : '2');
+  }).join(' ');
+}
+
+function renderLearn() {
+  document.getElementById('learnBody').innerHTML = learnHTML();
+}
+
+// ---------- inspection voice and cancel ----------
+// seconds elapsed in inspection at which the voice speaks
+const VOICE_ALERTS = [8, 12, 15, 17];
+let alerted = new Set();
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  } catch (err) { /* speech unavailable */ }
+}
+
+function announceInspection(elapsed) {
+  for (const a of VOICE_ALERTS) {
+    if (elapsed >= a && !alerted.has(a)) {
+      alerted.add(a);
+      if (a === 15) speak('plus two');
+      else if (a === 17) speak('DNF');
+      else speak(a + ' seconds');
+    }
+  }
+}
+
+function cancelInspection() {
+  cancelAnimationFrame(raf);
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  state = 'menu';
+  spaceDown = false;
+  refresh();
+}
+
+// ---------- timing ----------
+function newInspection(now) {
+  alerted = new Set();
+  hidePbPanel();
+  state = 'inspect';
+  inspStart = now;
+  holdStart = now;
+  spaceDown = true;
+  sawFirstRelease = false;
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(tick);
+  refresh();
+}
+
+function inspectReady(now) {
+  return spaceDown && sawFirstRelease && now - holdStart >= HOLD_READY_MS;
+}
+
+function tick() {
+  const now = performance.now();
+  if (state === 'inspect') {
+    const el = (now - inspStart) / 1000;
+    const rem = INSPECTION_S - el;
+    let text;
+    if (rem >= 0) text = String(Math.ceil(rem));
+    else if (el <= 17) text = '+2';
+    else text = 'DNF';
+    announceInspection(el);
+    setTimer(text, inspectReady(now) ? 'ready' : 'notready');
+  } else if (state === 'solve') {
+    setTimer(fmt(now - solveStart), '');
+  }
+  raf = requestAnimationFrame(tick);
+}
+
+function startSolve(now) {
+  const el = (now - inspStart) / 1000;
+  penalty = el > 17 ? 'DNF' : el > 15 ? 2 : 0;
+  state = 'solve';
+  solveStart = now;
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(tick);
+  refresh();
+}
+
+function stopSolve(now) {
+  const total = now - solveStart;
+  cancelAnimationFrame(raf);
+  const before = pbSnapshot();
+  solves.push({
+    id: ++idCounter,
+    ms: total,
+    pen: penalty,
+    scramble: currentScramble,
+    date: Date.now()
+  });
+  const after = pbSnapshot();
+  state = 'menu';
+  spaceDown = false;
+  newScramble();
+  refresh();
+  const b = before[0].val, a = after[0].val;
+  if (a !== null && (b === null || a < b)) confetti();
+  showPbPanel(before, after);
+}
+
+function applyAction(action, id) {
+  const s = solves.find(x => x.id === id);
+  if (action === 'del') {
+    solves = solves.filter(x => x.id !== id);
+    solvesByEvent[currentEvent] = solves;
+    if (openId === id) openId = null;
+    if (statOpenId === id) statOpenId = null;
+  } else if (s && action === 'pen2') {
+    s.pen = s.pen === 2 ? 0 : 2;
+  } else if (s && action === 'penDNF') {
+    s.pen = s.pen === 'DNF' ? 0 : 'DNF';
+  }
+  refresh();
+}
+
+// ---------- events ----------
+document.addEventListener('click', (e) => {
+  const copyEl = e.target.closest('.scramble-top, .sc');
+  if (copyEl) {
+    copyText(copyEl.textContent.trim(), copyEl, e.clientX, e.clientY);
+    return;
+  }
+  if (!e.target.closest('.event-menu') && !e.target.closest('.event-btn') && !e.target.closest('.profile-btn')) hideMenus();
+  const el = e.target.closest('[data-action]');
+  if (!el || el.disabled) return;
+  el.blur();
+  const action = el.dataset.action;
+  const id = el.dataset.id ? Number(el.dataset.id) : null;
+
+  if (action === 'view') {
+    setView(el.dataset.view);
+  } else if (action === 'toggleSessions') {
+    toggleSessionMenu(el);
+  } else if (action === 'session') {
+    switchSession(id);
+  } else if (action === 'addSession') {
+    openNameModal('add');
+  } else if (action === 'renameSession') {
+    openNameModal('rename');
+  } else if (action === 'removeSession') {
+    showSessionPopup();
+  } else if (action === 'confirmRemoveSession') {
+    hideSessionPopup();
+    removeSession();
+  } else if (action === 'cancelRemoveSession') {
+    hideSessionPopup();
+  } else if (action === 'saveName') {
+    commitName();
+  } else if (action === 'profile') {
+    onProfileClick(el);
+  } else if (action === 'authTab') {
+    setAuthMode(el.dataset.mode);
+  } else if (action === 'authSubmit') {
+    submitAuth();
+  } else if (action === 'cancelAuth') {
+    closeAuth();
+  } else if (action === 'changePfp') {
+    changePfp();
+  } else if (action === 'editName') {
+    openEdit('name');
+  } else if (action === 'editPassword') {
+    openEdit('password');
+  } else if (action === 'logout') {
+    logout();
+  } else if (action === 'editSave') {
+    saveEdit();
+  } else if (action === 'cancelEdit') {
+    closeEdit();
+  } else if (action === 'forgotPassword') {
+    showForgot();
+  } else if (action === 'confirmForgot') {
+    confirmForgot();
+  } else if (action === 'cancelForgot') {
+    hideForgot();
+  } else if (action === 'note') {
+    openNote(id);
+  } else if (action === 'saveNote') {
+    saveNote();
+  } else if (action === 'cancelNote') {
+    hideNote();
+  } else if (action === 'learnGo') {
+    learnPage = el.dataset.page;
+    learnCase = null;
+    renderLearn();
+  } else if (action === 'learnCase') {
+    learnCase = el.dataset.case;
+    renderLearn();
+  } else if (action === 'learnBack') {
+  if (learnCase) learnCase = null;
+    else if (['f2l', 'oll', 'pll'].includes(learnPage)) learnPage = 'cfop';
+    else learnPage = 'home';
+    renderLearn();
+  } else if (action === 'openImport') {
+    openImport();
+  } else if (action === 'saveImport') {
+    saveImport();
+  } else if (action === 'cancelImport') {
+    hideImport();
+  } else if (action === 'cancelName') {
+    hideNameModal();
+  } else if (action === 'toggleEvents') {
+    sessionMenu.hidden = true;
+    toggleEventMenu(el);
+  } else if (action === 'event') {
+    setEvent(el.dataset.event);
+  } else if (action === 'sort') {
+    sortMode = el.dataset.sort;
+    refresh();
+  } else if (action === 'open') {
+    openId = openId === id ? null : id;
+    renderSolves();
+  } else if (action === 'statFocus') {
+    statFocus = statFocus === el.dataset.stat ? null : el.dataset.stat;
+    statOpenId = null;
+    renderStatsView();
+  } else if (action === 'statOpen') {
+    statOpenId = statOpenId === id ? null : id;
+    renderStatDetail();
+  } else if (action === 'del') {
+    if (id !== null) showPopup(id);
+  } else if (action === 'confirmDel') {
+    const target = pendingDelete;
+    hidePopup();
+    if (target !== null) applyAction('del', target);
+  } else if (action === 'cancelDel') {
+    hidePopup();
+  } else if (action === 'pen2' || action === 'penDNF') {
+    if (id !== null) applyAction(action, id);
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  if (!document.getElementById('noteModal').hidden) {
+    if (e.key === 'Escape') hideNote();
+    return;
+  }
+  if (!authModal.hidden || !editModal.hidden) {
+    if (e.key === 'Enter') {
+      if (!authModal.hidden) submitAuth();
+      else saveEdit();
+    } else if (e.key === 'Escape') {
+      closeAuth();
+      closeEdit();
+    }
+    return;
+  }
+  if (!document.getElementById('importModal').hidden) {
+    if (e.key === 'Enter') saveImport();
+    else if (e.key === 'Escape') hideImport();
+    return;
+  }
+  if (!nameModal.hidden) {
+    if (e.key === 'Enter') commitName();
+    else if (e.key === 'Escape') hideNameModal();
+    return;
+  }
+  if (!sessionPopup.hidden) {
+    if (e.key === 'Escape') hideSessionPopup();
+    return;
+  }
+  if (!sessionMenu.hidden) {
+    if (e.key === 'Escape') hideMenus();
+    return;
+  }
+  if (!eventMenu.hidden) {
+    if (e.key === 'Escape') hideEventMenu();
+    return;
+  }
+  if (!popup.hidden) {
+    if (e.key === 'Escape') hidePopup();
+    return;
+  }
+  const isSpace = e.code === 'Space';
+  if (isSpace) {
+    e.preventDefault();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+  if (view !== 'timer' || e.repeat) return;
+  const now = performance.now();
+
+  if (state === 'menu') {
+    if (isSpace) newInspection(now);
+  } else if (state === 'inspect') {
+    if (isSpace) {
+      spaceDown = true;
+      holdStart = now;
+    }
+  } else if (state === 'solve') {
+    stopSolve(now);
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (e.code !== 'Space' || view !== 'timer' || state !== 'inspect') return;
+  const now = performance.now();
+  const held = now - holdStart >= HOLD_READY_MS;
+  spaceDown = false;
+  if (!sawFirstRelease) {
+    sawFirstRelease = true; // releasing the press that started inspection does nothing
+    return;
+  }
+  if (held) startSolve(now);
+  else cancelInspection();
+});
+
+window.addEventListener('blur', () => {
+  if (state === 'inspect') {
+    state = 'menu';
+    cancelAnimationFrame(raf);
+    spaceDown = false;
+    refresh();
+  }
+});
+
+// keep the chart drawn at the real width of its box so it is never stretched
+window.addEventListener('resize', () => {
+  if (view === 'stats') renderStatsView();
+});
+
+// ---------- touch input (phones and tablets) ----------
+// touching the timer acts like holding and releasing SPACE
+const timerCenter = document.querySelector('#timerView .center');
+timerCenter.addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'touch' || e.target.closest('.actions')) return;
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }));
+});
+const releaseTouch = (e) => {
+  if (e.pointerType !== 'touch') return;
+  window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }));
+};
+timerCenter.addEventListener('pointerup', releaseTouch);
+timerCenter.addEventListener('pointercancel', releaseTouch);
+
+// ---------- init ----------
+pbPanel.addEventListener('click', hidePbPanel);
+loadAuth();
+loadSessions();
+activateSession(currentSession);
+for (const key of Object.keys(EVENTS)) {
+  if (!Array.isArray(solvesByEvent[key])) solvesByEvent[key] = [];
+}
+solves = solvesByEvent[currentEvent];
+buildEventMenu();
+if (scrambles[currentEvent]) {
+  currentScramble = scrambles[currentEvent];
+  showScramble();
+} else {
+  newScramble();
+}
+refresh();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
